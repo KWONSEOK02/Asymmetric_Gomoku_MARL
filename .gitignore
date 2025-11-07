@@ -59,3 +59,8 @@ Desktop.ini
 .DS_Store
 .AppleDouble
 .LSOverride
+
+
+# ---- Project-specific ignore ----
+environment.yml
+test.ipynb
