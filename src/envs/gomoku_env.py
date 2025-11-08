@@ -11,13 +11,12 @@ from torchrl.data.tensor_specs import (
 )
 import time
 
-# --- 경로 수정 ---
-# (참고: src/utils/ 폴더에 policy.py, misc.py, log.py 파일이 있다고 가정)
+
 from src.utils.policy import _policy_t 
 from src.utils.misc import add_prefix
-from src.envs.core import Gomoku # .core -> src.envs.core
 from src.utils.log import get_log_func
-# --- 경로 수정 끝 ---
+from src.envs.core import Gomoku 
+
 
 from collections import defaultdict
 
@@ -86,7 +85,6 @@ class GomokuEnv:
         return self.gomoku.num_envs
 
     def reset(self, env_indices: torch.Tensor | None = None) -> TensorDict:
-        """Resets the specified game environments..."""
         self.gomoku.reset(env_indices=env_indices)
         tensordict = TensorDict(
             {
@@ -102,10 +100,9 @@ class GomokuEnv:
         self,
         tensordict: TensorDict,
     ) -> TensorDict:
-        """Advances the state of the environments..."""
         action: torch.Tensor = tensordict.get("action")
         env_mask: torch.Tensor = tensordict.get("env_mask", None)
-        episode_len = self.gomoku.move_count + 1  # (E,)
+        episode_len = self.gomoku.move_count + 1
         win, illegal = self.gomoku.step(action=action, env_mask=env_mask)
 
         assert not illegal.any()
@@ -120,7 +117,6 @@ class GomokuEnv:
                 "action_mask": self.gomoku.get_action_mask(),
                 "done": done,
                 "win": win,
-                # reward is calculated later
                 "stats": {
                     "episode_len": episode_len,
                     "black_win": black_win,
@@ -137,18 +133,16 @@ class GomokuEnv:
         tensordict: TensorDict,
         env_mask: torch.Tensor | None = None,
     ) -> TensorDict:
-        """Simulates a single step of the game environment..."""
         if env_mask is not None:
             tensordict.set("env_mask", env_mask)
         next_tensordict = self.step(tensordict=tensordict)
         tensordict.exclude("env_mask", inplace=True)
 
-        done: torch.Tensor = next_tensordict.get("done")  # (E,)
+        done: torch.Tensor = next_tensordict.get("done")
         env_ids = done.nonzero().squeeze(0)
         reset_td = self.reset(env_indices=env_ids)
-        next_tensordict.update(reset_td)  # no impact on training
+        next_tensordict.update(reset_td)
         return next_tensordict
 
     def set_post_step(self, post_step: Callable[[TensorDict], None] | None = None):
-        """Sets a function to be called after each step..."""
         self._post_step = post_step
