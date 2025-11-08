@@ -11,6 +11,7 @@ epochs: 1000
 steps: 128
 save_interval: 300
 
+collector_type: "BlackPlay"
 
 black_checkpoint: pretrained_models/${board_size}_${board_size}/${algo.name}/0.pt
 white_checkpoint: pretrained_models/${board_size}_${board_size}/${algo.name}/1.pt
