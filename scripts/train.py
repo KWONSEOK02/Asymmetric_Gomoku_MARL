@@ -78,7 +78,7 @@ def main(cfg: DictConfig):
         # 1. 데이터 수집
         # (cfg.collector_type에 따라 반환값이 달라질 수 있으므로, 
         #  BlackPlayCollector 기준으로 우선 작성)
-        transitions, info = collector.rollout(cfg.steps_per_epoch)
+        transitions, info = collector.rollout(cfg.steps)
         
         # 2. 에이전트 학습
         if transitions is not None and len(transitions) > 0:
