@@ -1,0 +1,16 @@
+# Gomoku_RL 호환성 기준
+# torch==2.1.0
+# torchrl==0.2.1
+# tensordict==0.2.1
+numpy<2
+
+# 프로젝트 필수 라이브러리
+hydra-core
+omegaconf
+PyQt5
+
+# 기타 유틸리티
+tqdm
+matplotlib
+scipy
+wandb

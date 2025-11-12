@@ -1,0 +1,148 @@
+from typing import Union, Callable
+from tensordict import TensorDict
+from tensordict.nn import TensorDictModule, set_interaction_type, InteractionType
+import torch
+
+from torchrl.data.tensor_specs import (
+    CompositeSpec,
+    DiscreteTensorSpec,
+    BinaryDiscreteTensorSpec,
+    UnboundedContinuousTensorSpec,
+)
+import time
+
+
+from src.utils.policy import _policy_t 
+from src.utils.misc import add_prefix
+from src.utils.log import get_log_func
+from src.envs.core import Gomoku 
+
+
+from collections import defaultdict
+
+class GomokuEnv:
+    def __init__(
+        self,
+        num_envs: int,
+        board_size: int,
+        device=None,
+    ):
+        """Initializes a parallel Gomoku environment. ..."""
+        self.gomoku = Gomoku(
+            num_envs=num_envs, board_size=board_size, device=device)
+
+        self.observation_spec = CompositeSpec(
+            {
+                "observation": UnboundedContinuousTensorSpec(
+                    device=self.device,
+                    shape=[num_envs, 3, board_size, board_size],
+                ),
+                "action_mask": BinaryDiscreteTensorSpec(
+                    n=board_size * board_size,
+                    device=self.device,
+                    shape=[num_envs, board_size * board_size],
+                    dtype=torch.bool,
+                ),
+            },
+            shape=[
+                num_envs,
+            ],
+            device=self.device,
+        )
+        self.action_spec = DiscreteTensorSpec(
+            board_size * board_size,
+            shape=[
+                num_envs,
+            ],
+            device=self.device,
+        )
+        self.reward_spec = UnboundedContinuousTensorSpec(
+            shape=[num_envs, 1],
+            device=self.device,
+        )
+
+        self._post_step: Callable[
+            [
+                TensorDict,
+            ],
+            None,
+        ] | None = None
+
+    @property
+    def batch_size(self):
+        return torch.Size((self.num_envs,))
+
+    @property
+    def board_size(self):
+        return self.gomoku.board_size
+
+    @property
+    def device(self):
+        return self.gomoku.device
+
+    @property
+    def num_envs(self):
+        return self.gomoku.num_envs
+
+    def reset(self, env_indices: torch.Tensor | None = None) -> TensorDict:
+        self.gomoku.reset(env_indices=env_indices)
+        tensordict = TensorDict(
+            {
+                "observation": self.gomoku.get_encoded_board(),
+                "action_mask": self.gomoku.get_action_mask(),
+            },
+            self.batch_size,
+            device=self.device,
+        )
+        return tensordict
+
+    def step(
+        self,
+        tensordict: TensorDict,
+    ) -> TensorDict:
+        action: torch.Tensor = tensordict.get("action")
+        env_mask: torch.Tensor = tensordict.get("env_mask", None)
+        episode_len = self.gomoku.move_count + 1
+        win, illegal = self.gomoku.step(action=action, env_mask=env_mask)
+
+        assert not illegal.any()
+
+        done = win
+        black_win = win & (episode_len % 2 == 1)
+        white_win = win & (episode_len % 2 == 0)
+        tensordict = TensorDict({}, self.batch_size, device=self.device)
+        tensordict.update(
+            {
+                "observation": self.gomoku.get_encoded_board(),
+                "action_mask": self.gomoku.get_action_mask(),
+                "done": done,
+                "win": win,
+                "stats": {
+                    "episode_len": episode_len,
+                    "black_win": black_win,
+                    "white_win": white_win,
+                },
+            }
+        )
+        if self._post_step:
+            self._post_step(tensordict)
+        return tensordict
+
+    def step_and_maybe_reset(
+        self,
+        tensordict: TensorDict,
+        env_mask: torch.Tensor | None = None,
+    ) -> TensorDict:
+        if env_mask is not None:
+            tensordict.set("env_mask", env_mask)
+        next_tensordict = self.step(tensordict=tensordict)
+        tensordict.exclude("env_mask", inplace=True)
+
+        done: torch.Tensor = next_tensordict.get("done")
+        env_ids = done.nonzero().squeeze(0)
+        reset_td = self.reset(env_indices=env_ids)
+        next_tensordict.update(reset_td)
+        return next_tensordict
+
+    def set_post_step(self, post_step: Callable[[TensorDict], None] | None = None):
+        self._post_step = post_step
