@@ -47,8 +47,10 @@ pip install -r requirements.txt
 #### 1.Colab 노트북을 열고 런타임 유형을 GPU로 변경합니다.
 
 #### 2.Google Drive를 마운트(연결)합니다.
+```bash
 from google.colab import drive
 drive.mount('/content/drive')
+```
 
 
 #### 3. 프로젝트를 클론하고 라이브러리를 설치
