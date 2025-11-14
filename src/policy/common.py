@@ -10,9 +10,6 @@ from torchrl.modules.models import ConvNet, MLP
 from torchrl.modules import ValueOperator
 from torchrl.data import TensorSpec
 from torchrl.modules import (
-    DuelingCnnDQNet,
-    EGreedyModule,
-    QValueActor,
     ActorValueOperator,
     SafeModule,
 )
@@ -21,56 +18,14 @@ from tensordict import TensorDict
 from omegaconf import DictConfig, OmegaConf
 from typing import Callable, Iterable
 
-# --- 경로 수정 ---
-# (src/utils/ 폴더에 'module.py'와 'misc.py'가 있다고 가정)
-from src.utils.module import (
+from src.models import (
     ValueNet,
     ActorNet,
     ResidualTower,
     PolicyHead,
     ValueHead,
-    MyDuelingCnnDQNet,
 )
 from src.utils.misc import get_kwargs
-# --- 경로 수정 끝 ---
-
-
-def make_dqn_actor(
-    cfg: DictConfig,
-    action_spec: TensorSpec,
-    device: _device_t,
-):
-    net_kwargs = get_kwargs(cfg, "num_residual_blocks", "num_channels")
-    net = MyDuelingCnnDQNet(
-        in_channels=3, out_features=action_spec.space.n, **net_kwargs
-    )
-    actor = QValueActor(
-        net,
-        spec=action_spec,
-        action_mask_key="action_mask",
-    ).to(device)
-    return actor
-
-
-def make_egreedy_actor(
-    actor: TensorDictModule,
-    action_spec: TensorSpec,
-    eps_init: float = 1.0,
-    eps_end: float = 0.10,
-    annealing_num_steps: int = 1000,
-):
-    explorative_policy = TensorDictSequential(
-        actor,
-        EGreedyModule(
-            spec=action_spec,
-            eps_init=eps_init,
-            eps_end=eps_end,
-            annealing_num_steps=annealing_num_steps,
-            action_mask_key="action_mask",
-        ),
-    )
-    return explorative_policy
-
 
 def make_ppo_actor(
     cfg: DictConfig,

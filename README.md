@@ -10,8 +10,9 @@
 
 ## 2. 🛠️ Tech Stack
 
-* **Core:** Python 3.11.5, PyTorch 2.1.0, TorchRL 0.2.1
 * **Environment:** Conda (로컬 가상 환경), Google Colab (GPU 학습)
+* **Local (Conda):** Python 3.11.5, PyTorch 2.1.0, TorchRL 0.2.1
+* **Colab (GPU):** Python 3.12, PyTorch 2.2.2+cu118, TorchRL 0.5.0
 * **Config & Demo:** Hydra-core, OmegaConf, PyQt5
 * **Utilities:** NumPy (<2.0), WandB, Matplotlib
 
@@ -29,30 +30,30 @@ cd Asymmetric_Gomoku_MARL
 ```
 
 
-# 2. 로컬 가상 환경 설정 (Conda)
+### 2. 로컬 가상 환경 설정 (Conda)
 
-## Python 3.11.5로 'gomoku_marl_env' 환경 생성
+#### Python 3.11.5로 'gomoku_marl_env' 환경 생성
 ```bash
 conda create -n gomoku_marl_env python=3.11.5
 conda activate gomoku_marl_env
 ```
 
-## requirements.txt로 모든 라이브러리 설치
+#### requirements.txt로 모든 라이브러리 설치
 ```bash
 pip install -r requirements.txt
 ```
 
+### 3. Colab을 이용한 GPU 학습 (Training)
+#### 1.Colab 노트북을 열고 런타임 유형을 GPU로 변경합니다.
 
-
-## 3. Colab을 이용한 GPU 학습 (Training)
-### 1.Colab 노트북을 열고 런타임 유형을 GPU로 변경합니다.
-
-### 2.Google Drive를 마운트(연결)합니다.
+#### 2.Google Drive를 마운트(연결)합니다.
+```bash
 from google.colab import drive
 drive.mount('/content/drive')
+```
 
 
-### 3. 프로젝트를 클론하고 라이브러리를 설치
+#### 3. 프로젝트를 클론하고 라이브러리를 설치
 ```bash
 # GitHub에서 프로젝트를 복제합니다. (마크다운 없이 URL만 사용)
 !git clone https://github.com/KWONSEOK02/Asymmetric_Gomoku_MARL.git
@@ -64,30 +65,94 @@ drive.mount('/content/drive')
 !pip install -r requirements.txt
 
 # 2. (신규) PyTorch/TorchRL은 Colab의 CUDA 버전에 맞춰 별도 설치
-!pip install torch==2.1.0+cu118 torchrl==0.2.1 tensordict==0.2.1 --index-url https://download.pytorch.org/whl/cu118
+# (Colab 기본 PyTorch/TorchVision을 삭제한 후, cu118 버전에 맞는 torch 2.2.2와 torchrl 0.5.0을 설치합니다.)
+!pip install --index-url https://download.pytorch.org/whl/cu118 torch==2.2.2+cu118
+!pip install --no-deps torchrl==0.5.0 tensordict==0.5.0
 ```
 
-### 4.Google Drive에 결과를 저장하며 학습을 실행합니다. (12시간 런타임 제한 대비)
+#### 4. Google Drive에 결과를 저장하며 학습을 실행
+##### 예제 1: PPO로 흑(Black) 에이전트 학습 (기본값)
+
+흑(선공) 에이전트가 랜덤 상대를 이기도록 학습 (5 에포크 테스트 예시)
 ```bash
-!python Asymmetric_Gomoku_MARL/scripts/train.py \
-device=cuda \
-wandb.mode=disabled \
-run_dir='/content/drive/My Drive/Gomoku_Results' \
-epochs=1000
+#`scripts/train.py`는 Hydra를 사용하며, 커맨드 라인에서 `key=value`를 통해 설정을 덮어쓸 수 있습니다.
+#(기본 설정: collector_type: BlackPlay, algo: ppo)
+!python -m scripts.train \
+    device=cuda \
+    wandb.mode=disabled \
+    run_dir='/content/drive/My Drive/Gomoku_Results' \
+    epochs=5
+```
+
+##### 예제 2: PPO로 백(White) 에이전트 학습
+
+collector_type을 WhitePlay로 덮어써서, 백(후공) 에이전트가 랜덤 상대를 이기도록 학습
+```bash
+!python -m scripts.train \
+    device=cuda \
+    wandb.mode=disabled \
+    run_dir='/content/drive/My Drive/Gomoku_Results' \
+    epochs=5 \
+    collector_type=WhitePlay
+```
+
+##### 예제 3: A2C로 흑(Black) 에이전트 학습
+
+algo를 a2c로 덮어써서, PPO 대신 A2C 알고리즘으로 흑 에이전트를 학습
+```bash
+!python -m scripts.train \
+    device=cuda \
+    wandb.mode=disabled \
+    run_dir='/content/drive/My Drive/Gomoku_Results' \
+    epochs=5 \
+    algo=a2c
+```
+
+##### 예제 4: A2C로 백(White) 에이전트 학습
+
+collector_type과 algo를 모두 덮어써서, A2C 알고리즘으로 백 에이전트를 학습
+```bash
+!python -m scripts.train \
+    device=cuda \
+    wandb.mode=disabled \
+    run_dir='/content/drive/My Drive/Gomoku_Results' \
+    epochs=5 \
+    collector_type=WhitePlay \
+    algo=a2c
 ```
 
 
-## 4. 로컬에서 데모 실행 (Demo)
-### 1. Google Drive의 Gomoku_Results 폴더에서 학습된 모델(예: black_final.pt)을 로컬 results/models/ 폴더로 다운로드합니다.
+### 4. 로컬에서 데모 실행 (Demo)
+#### 1. Google Drive의 Gomoku_Results 폴더에서 학습된 모델(예: black_final.pt)을 로컬 results/models/ 폴더로 다운로드합니다.
 
-### 2. 로컬의 (gomoku_marl_env) 환경에서 demo.py를 실행합니다.
+#### 2. 로컬의 (gomoku_marl_env) 환경에서 demo.py를 실행합니다.
 
 ```bash
 # (gomoku_marl_env)
 python scripts/demo.py device=cpu checkpoint=results/models/black_final.pt
 ```
 
-## 4. 📁 프로젝트 구조
+## 4. 알고리즘 (Algorithms)
+
+본 프로젝트는 두 가지 핵심 강화학습 알고리즘인 PPO와 A2C를 지원합니다.
+
+### PPO (`ppo.py`)
+
+여러 에포크(epoch)와 미니배치(mini-batch)를 사용해 수집된 데이터를 재사용(Off-Policy)하는 안정적이고 효율적인 알고리즘입니다. `ClipPPOLoss`를 사용합니다.
+
+### A2C (`a2c.py`)
+
+`ppo.py`와 달리, 수집한 데이터를 재사용하지 않고 **"1 배치 = 1 업데이트"**를 수행하는 전통적인 A2C (Advantage Actor-Critic)의 **On-Policy** 방식을 따릅니다.
+
+본 구현은 A2C의 안정적인 학습을 위해 다음과 같은 현대적인 기법들이 적용되어 있습니다.
+
+* **GAE (Generalized Advantage Estimation):** 1-step TD, n-step TD 방식과 비교 실험한 결과(그래프 참고), 가장 성능이 우수했던 **GAE**를 사용해 Advantage를 계산합니다.
+* **실전 안정화:** Gradient Clipping, `smooth_l1_loss`, Advantage 정규화 등 `ppo.py`와 유사한 실전 안정화 기법이 포함되어 있습니다.
+* **메모리 최적화 (그래디언트 누적):** Colab GPU 환경의 메모리 한계(OOM) 내에서 대용량 배치를 학습하기 위해 **그래디언트 누적(Gradient Accumulation)**이 구현되었습니다.
+
+📄 [A2C 상세 구현 및 실험 문서 (Notion) 작성자 : cxado-6919 ](https://www.notion.so/a2c-py-2aa67d3af68780a6a26cea9213549602?source=copy_link)
+
+## 5. 📁 프로젝트 구조
 ```
 Asymmetric_Gomoku_MARL/
 ├── configs/
@@ -120,8 +185,7 @@ Asymmetric_Gomoku_MARL/
 │   │   └── evaluator.py
 │   ├── models/            # (신규) 신경망 "설계도" (.py)
 │   │   ├── __init__.py
-│   │   ├── ppo_model.py     # (신규) PPO가 사용할 모델 구조 (module.py에서 분리)
-│   │   └── a2c_model.py     # (신규) A2C가 사용할 모델 구조
+│   │   └── base_model.py     # (신규) PPO/A2C 공용 베이스 모델
 │   ├── policy/            # (신규) "알고리즘" 자체
 │   │   ├── __init__.py
 │   │   ├── base.py          # (가져옴) Policy 추상 클래스
@@ -139,7 +203,7 @@ Asymmetric_Gomoku_MARL/
 └── README.md
 ```
 
-## 5. 🤝 협업 가이드라인 (Contribution Guidelines)
+## 6. 🤝 협업 가이드라인 (Contribution Guidelines)
 
 ### Git Workflow
 - `master` (Production): 최종 배포 브랜치
