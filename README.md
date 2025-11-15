@@ -55,11 +55,11 @@ drive.mount('/content/drive')
 
 #### 3. 프로젝트를 클론하고 라이브러리를 설치
 ```bash
-# GitHub에서 프로젝트를 복제합니다. (마크다운 없이 URL만 사용)
-!git clone https://github.com/KWONSEOK02/Asymmetric_Gomoku_MARL.git
-
 # Git 클론 경로가 꼬이지 않도록, Colab 기본 디렉토리(/content)로 이동합니다.
 %cd /content
+
+# GitHub에서 프로젝트를 복제합니다. (마크다운 없이 URL만 사용)
+!git clone https://github.com/KWONSEOK02/Asymmetric_Gomoku_MARL.git
 
 # 복제된 폴더 안으로 작업 디렉터리를 이동합니다.
 %cd Asymmetric_Gomoku_MARL
