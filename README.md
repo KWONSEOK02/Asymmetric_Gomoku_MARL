@@ -44,7 +44,7 @@ pip install -r requirements.txt
 ```
 
 ### 3. Colab을 이용한 GPU 학습 (Training)
-#### 1.Colab 노트북을 열고 런타임 유형을 GPU로 변경합니다.
+#### 1.Colab 노트북을 열고 런타임 유형을 T4 GPU로 변경합니다.
 
 #### 2.Google Drive를 마운트(연결)합니다.
 ```bash
@@ -55,6 +55,9 @@ drive.mount('/content/drive')
 
 #### 3. 프로젝트를 클론하고 라이브러리를 설치
 ```bash
+# Git 클론 경로가 꼬이지 않도록, Colab 기본 디렉토리(/content)로 이동합니다.
+%cd /content
+
 # GitHub에서 프로젝트를 복제합니다. (마크다운 없이 URL만 사용)
 !git clone https://github.com/KWONSEOK02/Asymmetric_Gomoku_MARL.git
 

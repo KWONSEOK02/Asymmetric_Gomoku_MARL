@@ -5,13 +5,10 @@ from tensordict import TensorDict
 import time
 from tensordict.nn import TensorDictModule, set_interaction_type, InteractionType
 
-# --- 경로 수정 ---
-# (참고: src/utils/ 폴더에 policy.py, log.py, augment.py 파일이 있다고 가정)
 from src.utils.policy import _policy_t
 from src.utils.log import get_log_func
 from src.utils.augment import augment_transition
-from src.envs.gomoku_env import GomokuEnv # .env -> src.envs.gomoku_env
-# --- 경로 수정 끝 ---
+from src.envs.gomoku_env import GomokuEnv 
 
 def make_transition(
     tensordict_t_minus_1: TensorDict,
@@ -21,7 +18,7 @@ def make_transition(
     """
     Constructs a transition tensor dictionary for a two-player game...
     """
-    # (이하 내용은 원본과 동일, 생략)
+
     reward: torch.Tensor = (
         tensordict_t.get("win").float() -
         tensordict_t_plus_1.get("win").float()
@@ -54,7 +51,7 @@ def round(env: GomokuEnv,
           return_black_transitions: bool = True,
           return_white_transitions: bool = True,):
     """Executes two sequential steps in the Gomoku environment..."""
-    # (이하 내용은 원본과 동일, 생략)
+    
     tensordict_t_plus_1 = env.step_and_maybe_reset(
         tensordict=tensordict_t)
     with set_interaction_type(type=InteractionType.RANDOM):
@@ -105,7 +102,7 @@ def self_play_step(
     tensordict_t: TensorDict,
 ):
     """Executes a single step of self-play..."""
-    # (이하 내용은 원본과 동일, 생략)
+    
     tensordict_t_plus_1 = env.step_and_maybe_reset(
         tensordict=tensordict_t
     )
@@ -131,7 +128,7 @@ class Collector(abc.ABC):
 class SelfPlayCollector(Collector):
     def __init__(self, env: GomokuEnv, policy: _policy_t, out_device=None, augment: bool = False):
         """Initializes a collector for self-play data..."""
-        # (이하 내용은 원본과 동일, 생략)
+        
         self._env = env
         self._policy = policy
         self._out_device = out_device or self._env.device
@@ -139,14 +136,14 @@ class SelfPlayCollector(Collector):
         self._t = None
         self._t_minus_1 = None
     def reset(self):
-        # (이하 내용은 원본과 동일, 생략)
+        
         self._env.reset()
         self._t = None
         self._t_minus_1 = None
     @torch.no_grad()
     def rollout(self, steps: int) -> tuple[TensorDict, dict]:
         """Executes a rollout in the environment..."""
-        # (이하 내용은 원본과 동일, 생략)
+        
         info: defaultdict[str, float] = defaultdict(float)
         self._env.set_post_step(get_log_func(info))
         tensordicts = []
@@ -180,7 +177,7 @@ class SelfPlayCollector(Collector):
 class VersusPlayCollector(Collector):
     def __init__(self, env: GomokuEnv, policy_black: _policy_t, policy_white: _policy_t, out_device=None, augment: bool = False):
         """Initializes a collector for versus play data..."""
-        # (이하 내용은 원본과 동일, 생략)
+        
         self._env = env
         self._policy_black = policy_black
         self._policy_white = policy_white
@@ -189,14 +186,14 @@ class VersusPlayCollector(Collector):
         self._t_minus_1 = None
         self._t = None
     def reset(self):
-        # (이하 내용은 원본과 동일, 생략)
+        
         self._env.reset()
         self._t_minus_1 = None
         self._t = None
     @torch.no_grad()
     def rollout(self, steps: int) -> tuple[TensorDict, TensorDict, dict]:
         """Executes a rollout in the environment..."""
-        # (이하 내용은 원본과 동일, 생략)
+        
         steps = (steps//2)*2
         info: defaultdict[str, float] = defaultdict(float)
         self._env.set_post_step(get_log_func(info))
@@ -258,7 +255,7 @@ class VersusPlayCollector(Collector):
 class BlackPlayCollector(Collector):
     def __init__(self, env: GomokuEnv, policy_black: _policy_t, policy_white: _policy_t, out_device=None, augment: bool = False):
         """Initializes a collector for capturing game transitions (black player)..."""
-        # (이하 내용은 원본과 동일, 생략)
+        
         self._env = env
         self._policy_black = policy_black
         self._policy_white = policy_white
@@ -267,14 +264,14 @@ class BlackPlayCollector(Collector):
         self._t_minus_1 = None
         self._t = None
     def reset(self):
-        # (이하 내용은 원본과 동일, 생략)
+        
         self._env.reset()
         self._t_minus_1 = None
         self._t = None
     @torch.no_grad()
     def rollout(self, steps: int) -> tuple[TensorDict, dict]:
         """Executes a data collection session... (black player)"""
-        # (이하 내용은 원본과 동일, 생략)
+        
         steps = (steps//2)*2
         info: defaultdict[str, float] = defaultdict(float)
         self._env.set_post_step(get_log_func(info))
@@ -328,7 +325,6 @@ class BlackPlayCollector(Collector):
 class WhitePlayCollector(Collector):
     def __init__(self, env: GomokuEnv, policy_black: _policy_t, policy_white: _policy_t, out_device=None, augment: bool = False):
         """Initializes a collector focused on capturing game transitions (white player)..."""
-        # (이하 내용은 원본과 동일, 생략)
         self._env = env
         self._policy_black = policy_black
         self._policy_white = policy_white
@@ -337,14 +333,12 @@ class WhitePlayCollector(Collector):
         self._t_minus_1 = None
         self._t = None
     def reset(self):
-        # (이하 내용은 원본과 동일, 생략)
         self._env.reset()
         self._t_minus_1 = None
         self._t = None
     @torch.no_grad()
     def rollout(self, steps: int) -> tuple[TensorDict, dict]:
         """Performs a data collection session... (white player)"""
-        # (이하 내용은 원본과 동일, 생략)
         steps = (steps//2)*2
         info: defaultdict[str, float] = defaultdict(float)
         self._env.set_post_step(get_log_func(info))
@@ -361,7 +355,7 @@ class WhitePlayCollector(Collector):
                     "win": torch.zeros(
                         self._env.num_envs, dtype=torch.bool, device=self._env.device
                     ), "action": -torch.ones(
-                        self._env.num_envs, dtype=torch.long, device=self.device
+                        self._env.num_envs, dtype=torch.long, device=self._env.device  #  이 부분 수정 후 테스트 예정
                     ),
                 }
             )
