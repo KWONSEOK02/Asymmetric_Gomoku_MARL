@@ -6,15 +6,10 @@ from PyQt5.QtWidgets import QApplication, QMainWindow
 import logging
 
 # --- 경로 수정 ---
-# from gomoku_rl.policy import get_policy, Policy
-# (PPO/A2C 클래스는 src.agents 폴더에 구현될 예정)
-from src.agents.ppo_agent import PPOAgent # (예시: PPOAgent 클래스 경로)
-from src.agents.a2c_agent import A2CAgent # (예시: A2CAgent 클래스 경로)
-# (참고: get_policy 함수를 만들거나, 위처럼 PPO/A2C를 직접 import)
-# (임시로 get_policy 함수를 src.agents에 만든다고 가정)
-from src.agents import get_policy 
-
-from src.utils.policy import uniform_policy, _policy_t
+# (src/policy/base.py 에서 Policy 클래스를 가져옵니다)
+from src.policy.base import Policy
+# (src/utils/policy.py 에 get_policy, uniform_policy, _policy_t 가 있다고 가정)
+from src.utils.policy import get_policy, uniform_policy, _policy_t
 from src.envs.core import Gomoku
 # --- 경로 수정 끝 ---
 
@@ -382,8 +377,8 @@ def main(cfg: DictConfig):
         )[0]
         if path:
             # --- 경로 수정 ---
-            # (Policy 클래스를 src.agents에서 가져온다고 가정)
-            from src.agents import Policy
+            # (Policy 클래스를 src.policy.base 에서 가져옵니다)
+            from src.policy.base import Policy
             if not isinstance(board.model, Policy):
                 board.model = make_model(cfg)
 
