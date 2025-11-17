@@ -5,13 +5,11 @@ import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow
 import logging
 
-# --- 경로 수정 ---
 # (src/policy/base.py 에서 Policy 클래스를 가져옵니다)
 from src.policy.base import Policy
-# (src/utils/policy.py 에 get_policy, uniform_policy, _policy_t 가 있다고 가정)
-from src.utils.policy import get_policy, uniform_policy, _policy_t
+from src.policy import get_policy 
+from src.utils.policy import uniform_policy, _policy_t
 from src.envs.core import Gomoku
-# --- 경로 수정 끝 ---
 
 from torchrl.data.tensor_specs import (
     DiscreteTensorSpec,
