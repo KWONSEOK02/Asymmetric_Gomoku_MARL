@@ -63,14 +63,25 @@ class A2C(Policy):
             )
             self.critic = make_critic(cfg=cfg, device=self.device)
 
-        # lazy module 워밍업
+        # lazy module 워밍업 (BatchNorm + batch_size=1 대응)
         fake_input = observation_spec.zero()
         fake_input["action_mask"] = ~fake_input["action_mask"]
+
         with torch.no_grad():
+            # 현재 모드 저장
+            actor_was_training = self.actor.training
+            critic_was_training = self.critic.training
+
+            # BatchNorm 에러 방지를 위해 eval 모드에서 한 번만 워밍업
+            self.actor.eval()
+            self.critic.eval()
+
             self.actor(fake_input)
             self.critic(fake_input)
-        # print(f"actor params: {count_parameters(self.actor)}")
-        # print(f"critic params: {count_parameters(self.critic)}")
+
+            # 원래 모드로 복원 (추후 학습에도 사용 가능)
+            self.actor.train(actor_was_training)
+            self.critic.train(critic_was_training)
 
         # actor + critic 같이 업데이트
         params = list(self.actor.parameters()) + list(self.critic.parameters())
