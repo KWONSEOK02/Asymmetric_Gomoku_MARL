@@ -1,0 +1,15 @@
+defaults:
+  - _self_
+  - algo: a2c
+
+# Board and environment setup
+board_size: 15
+num_envs: 1
+device: cuda
+
+# Paths to the pretrained checkpoints for each color
+black_checkpoint: pretrained_models/${board_size}_${board_size}/${algo.name}/black.pt
+white_checkpoint: pretrained_models/${board_size}_${board_size}/${algo.name}/white.pt
+
+# Delay (in seconds) to wait after each move so the duel is easy to follow
+sleep_per_move: 0.5
