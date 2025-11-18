@@ -61,9 +61,23 @@ class PPO(Policy):
 
         fake_input = observation_spec.zero()
         fake_input["action_mask"] = ~fake_input["action_mask"]
+        # --- BatchNorm 오류 수정을 위해 eval 모드로 워밍업 ---
         with torch.no_grad():
+            # 현재 모드 저장
+            actor_was_training = self.actor.training
+            critic_was_training = self.critic.training
+
+            # eval 모드로 변경 (BatchNorm 통계 계산을 위함)
+            self.actor.eval()
+            self.critic.eval()
+
+            # 워밍업 실행
             self.actor(fake_input)
             self.critic(fake_input)
+
+            # 원래 모드로 복원 (기존 학습 로직에 영향 X)
+            self.actor.train(actor_was_training)
+            self.critic.train(critic_was_training)
         # print(f"actor params:{count_parameters(self.actor)}")
         # print(f"critic params:{count_parameters(self.critic)}")
 

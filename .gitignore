@@ -64,3 +64,4 @@ Desktop.ini
 # ---- Project-specific ignore ----
 environment.yml
 test.ipynb
+outputs/
