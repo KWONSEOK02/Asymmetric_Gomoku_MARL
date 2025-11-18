@@ -1,0 +1,19 @@
+# @package _global_
+
+# 기본값 설정. PPO를 기본 알고리즘으로 설정
+defaults:
+  - _self_
+  - algo: ppo
+
+# --- 데모 기본 설정 ---
+board_size: 15
+device: cpu        # 데모는 로컬에서 실행 목적이므로 CPU를 기본값으로
+num_envs: 1        # 데모는 1개의 환경만 필요
+
+# --- demo.py 전용 설정 ---
+checkpoint: null   # 기본값: 체크포인트 없음 (랜덤 모델)
+human_black: true  # 기본값: 사람이 흑돌
+
+# --- GUI 설정 ---
+grid_size: 28
+piece_radius: 12
