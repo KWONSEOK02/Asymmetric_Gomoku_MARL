@@ -8,7 +8,7 @@ from src.envs import GomokuEnv
 from src.utils.policy import uniform_policy 
 from src.utils.misc import set_seed
 from src.collectors.collectors import BlackPlayCollector, WhitePlayCollector, SelfPlayCollector
-from src.policy import get_policy
+from src.policy import get_policy, get_pretrained_policy
 
 # 로거 설정
 log = logging.getLogger(__name__)
@@ -37,26 +37,61 @@ def main(cfg: DictConfig):
     # (src.policy.get_policy 함수가 PPO/A2C를 반환)
     agent = get_policy(
         name=cfg.algo.name,
-        cfg=cfg.algo, 
-        action_spec=env.action_spec, 
-        observation_spec=env.observation_spec, 
+        cfg=cfg.algo,
+        action_spec=env.action_spec,
+        observation_spec=env.observation_spec,
         device=cfg.device
     )
 
+    # 이미 학습된 가중치로부터 이어서 학습하는 경우
+    if cfg.get("train_checkpoint"):
+        log.info(f"Loading training agent checkpoint from {cfg.train_checkpoint}")
+        state_dict = torch.load(cfg.train_checkpoint, map_location=cfg.device)
+        agent.load_state_dict(state_dict)
+        log.info("Training agent checkpoint loaded.")
+
     # --- 3. 데이터 수집기(Collector) 설정 ---
     log.info(f"--- 4. Setting up {cfg.collector_type} Collector ---")
-    random_opponent = uniform_policy
-    
+    opponent_policy = uniform_policy
+
+    opponent_cfg = cfg.get("opponent", {})
+    opponent_type = opponent_cfg.get("type", "random")
+
+    # 이미 학습된 모델을 상대(agent)로 사용하는 경우
+    if opponent_type == "pretrained":
+        checkpoint_path = opponent_cfg.get("checkpoint")
+        if not checkpoint_path:
+            raise ValueError("Opponent type is 'pretrained' but no checkpoint was provided.")
+        opponent_algo_name = opponent_cfg.get("algo_name", cfg.algo.name)
+        opponent_algo_cfg = opponent_cfg.get("algo_cfg", cfg.algo)
+        log.info(
+            "Loading opponent checkpoint from %s using algo %s",
+            checkpoint_path,
+            opponent_algo_name,
+        )
+        opponent_policy = get_pretrained_policy(
+            name=opponent_algo_name,
+            cfg=opponent_algo_cfg,
+            action_spec=env.action_spec,
+            observation_spec=env.observation_spec,
+            checkpoint_path=checkpoint_path,
+            device=cfg.device,
+        )
+        opponent_policy.eval()
+        log.info("Opponent model loaded.")
+    elif opponent_type != "random":
+        raise ValueError(f"Unknown opponent type: {opponent_type}")
+
     if cfg.collector_type == "BlackPlay":
         collector = BlackPlayCollector(
-            env, 
+            env,
             policy_black=agent,           # 학습할 대상
-            policy_white=random_opponent  # 고정된 상대
+            policy_white=opponent_policy  # 고정된 상대
         )
     elif cfg.collector_type == "WhitePlay":
         collector = WhitePlayCollector(
             env,
-            policy_black=random_opponent, # 고정된 상대
+            policy_black=opponent_policy, # 고정된 상대
             policy_white=agent            # 학습할 대상
         )
     elif cfg.collector_type == "SelfPlay":
