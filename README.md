@@ -124,6 +124,25 @@ collector_type과 algo를 모두 덮어써서, A2C 알고리즘으로 백 에이
     algo=a2c
 ```
 
+##### 예제 5: 이미 학습된 상대를 두고 추가 학습하기 (PPO/A2C 공통)
+
+`train_checkpoint`로 학습을 이어갈 모델을 지정하고, `opponent.type=pretrained` 및 `opponent.checkpoint`로 상대를 고정할 수 있습니다. 아래 예시는 흑(학습 대상) PPO 에이전트를, 1차 학습된 백 PPO 모델을 상대로 추가 학습하는 명령입니다.
+
+```bash
+!python -m scripts.train \
+    device=cuda \
+    wandb.mode=disabled \
+    run_dir='/content/drive/My Drive/Gomoku_Results' \
+    collector_type=BlackPlay \
+    epochs=5 \
+    train_checkpoint=results/models/black_epoch500.pt \
+    opponent.type=pretrained \
+    opponent.checkpoint=results/models/white_epoch500.pt \
+    opponent.algo_name=ppo
+```
+
+동일한 설정에서 `algo=a2c opponent.algo_name=a2c`로 바꾸면 A2C 모델끼리도 같은 방식으로 대전 학습을 진행할 수 있습니다.
+
 
 ### 4. 로컬에서 데모 실행 (Demo)
 #### 1. Google Drive의 Gomoku_Results 폴더에서 학습된 모델(예: black_final.pt)을 로컬 results/models/ 폴더로 다운로드합니다.
