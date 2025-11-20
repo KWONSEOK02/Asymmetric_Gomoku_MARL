@@ -19,7 +19,7 @@ opponent:
   type: random # "random" | "pretrained"
   checkpoint:
   algo_name: ${algo.name}
-  algo_cfg: ${algo}
+  algo_cfg: ${baseline}
 
 wandb:
   group: ${board_size}_${board_size}_${algo.name}_InRL
