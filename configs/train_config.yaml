@@ -10,6 +10,7 @@ augment: false
 epochs: 1000
 steps: 128
 save_interval: 300
+survival_reward: 0.001
 
 collector_type: "BlackPlay"
 

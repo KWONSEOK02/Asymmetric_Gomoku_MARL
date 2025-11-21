@@ -26,10 +26,13 @@ class GomokuEnv:
         num_envs: int,
         board_size: int,
         device=None,
+        survival_reward: float = 0.0, #생존 보상 추가
     ):
         """Initializes a parallel Gomoku environment. ..."""
         self.gomoku = Gomoku(
             num_envs=num_envs, board_size=board_size, device=device)
+
+        self.survival_reward = survival_reward #변수 저장
 
         self.observation_spec = CompositeSpec(
             {
@@ -110,6 +113,23 @@ class GomokuEnv:
         done = win
         black_win = win & (episode_len % 2 == 1)
         white_win = win & (episode_len % 2 == 0)
+
+        # --- 보상(Reward) 계산 로직 추가 ---
+        # 기본 보상 텐서 생성 (모두 0.0으로 시작)
+        reward = torch.zeros((self.num_envs, 1), device=self.device)
+
+        # A. 이겼을 때 보상 (+1.0)
+        # win은 [num_envs] 크기의 boolean이므로 인덱싱에 사용
+        reward[win] = 1.0
+
+        # B. 생존 보상 (게임이 안 끝났으면 +survival_reward)
+        # done이 False인(게임이 계속되는) 환경에만 보상 추가
+        if self.survival_reward > 0:
+            # ~done: 게임이 안 끝난 곳
+            reward[~done] += self.survival_reward
+
+        # -------------------------------------
+
         tensordict = TensorDict({}, self.batch_size, device=self.device)
         tensordict.update(
             {

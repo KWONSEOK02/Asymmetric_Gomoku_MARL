@@ -26,6 +26,10 @@ def main(cfg: DictConfig):
     
     # --- 1. 환경(Env) 생성 ---
     log.info(f"--- 2. Creating Environment ({cfg.num_envs} parallel envs) ---")
+    
+     # [수정] survival_reward 값을 config에서 가져와서 전달
+    survival_reward = cfg.get("survival_reward", 0.0)
+    
     env = GomokuEnv(
         num_envs=cfg.num_envs, 
         board_size=cfg.board_size, 
