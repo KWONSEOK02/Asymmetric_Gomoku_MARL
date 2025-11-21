@@ -78,32 +78,15 @@ def plot_graph(df, save_path, title_name):
     if df.empty:
         print("⚠️ 데이터가 없어 그래프를 그릴 수 없습니다.")
         return
-
     plt.figure(figsize=(10, 6))
     
-    # --- 색상 및 스타일 설정 로직 ---
-    name_lower = title_name.lower()
-    
-    # 기본값 (둘 다 없을 때)
-    b_color, b_style, b_width = 'black', '-', 2
-    w_color, w_style, w_width = 'gray', '--', 2
-    
-    if "black" in name_lower:
-        # 흑(Black)이 주인공 -> 흑을 진하게, 백을 흐리게
-        b_color, b_style, b_width = 'black', '-', 2.5  # 강조
-        w_color, w_style, w_width = 'gray', '--', 1.5  # 약화
-    elif "white" in name_lower:
-        # 백(White)이 주인공 -> 백을 진하게(파랑), 흑을 흐리게
-        # (배경이 흰색이라 White를 흰색으로 하면 안 보여서 파란색 사용)
-        b_color, b_style, b_width = 'gray', '--', 1.5  # 약화
-        w_color, w_style, w_width = 'royalblue', '-', 2.5 # 강조
-    # --------------------------------
-
+    # --- 팀 규칙 적용: 흑(Orange), 백(Blue), 실선(-) ---
     plt.plot(df['epoch'], df['black_win'], label='Black Win Rate', 
-             color=b_color, linestyle=b_style, linewidth=b_width)
+             color='orange', linestyle='-', linewidth=2.5)
     
     plt.plot(df['epoch'], df['white_win'], label='White Win Rate', 
-             color=w_color, linestyle=w_style, linewidth=w_width)
+             color='royalblue', linestyle='-', linewidth=2.5)
+    # ----------------------------------------------------
     
     plt.title(f"Training Progress: {title_name}", fontsize=14)
     plt.xlabel("Epoch", fontsize=12)
