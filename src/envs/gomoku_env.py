@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Union, Callable
 from tensordict import TensorDict
 from tensordict.nn import TensorDictModule, set_interaction_type, InteractionType
 import torch
@@ -86,12 +86,7 @@ class GomokuEnv:
         return self.gomoku.num_envs
 
     def _max_line_in_five(self, mask: torch.Tensor) -> torch.Tensor:
-        """
-        mask (E, B, B): 현재 플레이어 혹은 상대 플레이어 돌 위치 (bool 또는 0/1 float)
-
-        가로 / 세로 / 양 대각선으로 5칸 윈도우를 슬라이딩 하면서
-        한 윈도우 안에 포함된 최대 연속 돌 개수(<=5)를 계산.
-        """
+        """각 env에서 5칸 윈도우 기준 최대 연속 돌 개수(<=5)를 리턴."""
         if mask.dtype not in (torch.float32, torch.float64):
             x = mask.float().unsqueeze(1)  # (E,1,B,B)
         else:
@@ -108,6 +103,104 @@ class GomokuEnv:
         max_d = out_d.flatten(start_dim=1).amax(dim=1)  # (E,)
 
         return torch.stack([max_h, max_v, max_d], dim=1).amax(dim=1)
+
+    @staticmethod
+    def _count_threats_single(board_2d: torch.Tensor, opp_val: int) -> tuple[int, int]:
+        """
+        단일 보드(2D)에 대해 상대의 threat-3 / threat-4 개수를 센다.
+
+        - Threat-3: 열린 3목 패턴 0 1 1 1 0
+        - Threat-4: 한쪽만 막힌 4목 패턴
+            -1 1 1 1 1 0   또는   0 1 1 1 1 -1
+
+        여기서: 1 = 상대 돌, 0 = 빈칸, -1 = 내 돌 또는 보드 밖(엣지).
+        """
+        device = board_2d.device
+        B = board_2d.shape[0]
+
+        threat3 = 0
+        threat4 = 0
+
+        def process_line(line: torch.Tensor):
+            nonlocal threat3, threat4
+            # 보드 값을 {-1, 0, 1}로 매핑
+            vals = torch.full_like(line, fill_value=-1)
+            vals[line == opp_val] = 1
+            vals[line == 0] = 0
+
+            pad = torch.tensor([-1], dtype=vals.dtype, device=device)
+            v = torch.cat([pad, vals, pad], dim=0)  # (L+2,)
+            L = v.shape[0]
+
+            # Threat-3: 0 1 1 1 0 (양 끝이 빈칸인 열린 3목)
+            if L >= 5:
+                for i in range(L - 4):
+                    w = v[i: i + 5]
+                    if (
+                        int(w[0].item()) == 0
+                        and int(w[1].item()) == 1
+                        and int(w[2].item()) == 1
+                        and int(w[3].item()) == 1
+                        and int(w[4].item()) == 0
+                    ):
+                        threat3 += 1
+
+            # Threat-4: -1 1 1 1 1 0  또는  0 1 1 1 1 -1
+            if L >= 6:
+                for i in range(L - 5):
+                    w = v[i: i + 6]
+                    center = w[1:5]
+                    if bool((center == 1).all()):
+                        first = int(w[0].item())
+                        last = int(w[5].item())
+                        if (first == -1 and last == 0) or (first == 0 and last == -1):
+                            threat4 += 1
+
+        # 가로
+        for r in range(B):
+            process_line(board_2d[r, :])
+        # 세로
+        for c in range(B):
+            process_line(board_2d[:, c])
+        # 주대각선들
+        for offset in range(-B + 5, B - 4):
+            diag = board_2d.diagonal(offset=offset)
+            if diag.numel() >= 5:
+                process_line(diag)
+        # 역대각선들
+        flipped = torch.flip(board_2d, dims=[1])
+        for offset in range(-B + 5, B - 4):
+            diag = flipped.diagonal(offset=offset)
+            if diag.numel() >= 5:
+                process_line(diag)
+
+        return threat3, threat4
+
+    def _count_threats(
+        self, board: torch.Tensor, opp_piece: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """
+        배치 보드에 대해 threat-3 / threat-4 개수를 센다.
+
+        Args:
+            board: (E,B,B) 보드 텐서 (0, 1, -1)
+            opp_piece: (E,) 상대 돌 값 (+1 또는 -1)
+
+        Returns:
+            threat3, threat4: 각 (E,) float 텐서
+        """
+        E, B, _ = board.shape
+        threat3 = torch.zeros(E, device=self.device, dtype=torch.float32)
+        threat4 = torch.zeros(E, device=self.device, dtype=torch.float32)
+
+        for e in range(E):
+            t3, t4 = self._count_threats_single(
+                board[e], int(opp_piece[e].item())
+            )
+            threat3[e] = float(t3)
+            threat4[e] = float(t4)
+
+        return threat3, threat4
 
     def reset(self, env_indices: torch.Tensor | None = None) -> TensorDict:
         self.gomoku.reset(env_indices=env_indices)
@@ -128,85 +221,101 @@ class GomokuEnv:
         action: torch.Tensor = tensordict.get("action")
         env_mask: torch.Tensor | None = tensordict.get("env_mask", None)
 
-        # env_mask 기본값: 모든 env에 대해 수를 둔다고 가정
-        if env_mask is None:
-            env_mask = torch.ones(self.num_envs, dtype=torch.bool, device=self.device)
-
-        # ----- step 이전 상태 백업 (보상 계산용) -----
-        board_before = self.gomoku.board.clone()      # (E,B,B)
-        turn_before = self.gomoku.turn.clone()        # (E,)
-        move_count_before = self.gomoku.move_count.clone()  # (E,)
-        # -----------------------------------------
+        # --- 보상 쉐이핑을 위한 step 이전 상태 백업 ---
+        board_before = self.gomoku.board.clone()
+        turn_before = self.gomoku.turn.clone()
+        move_count_before = self.gomoku.move_count.clone()
 
         episode_len = move_count_before + 1
+
+        # 현재 수를 두는 플레이어 돌 값 (+1 / -1), 상대는 -piece
+        piece = torch.where(
+            turn_before == 0,
+            torch.ones_like(turn_before, dtype=torch.long),
+            -torch.ones_like(turn_before, dtype=torch.long),
+        )  # (E,)
+        opp_piece = -piece  # (E,)
+
+        # 수 두기 전 상대 threat-3 / threat-4 개수
+        opp_threat3_before, opp_threat4_before = self._count_threats(
+            board_before, opp_piece
+        )
+
+        # --- 실제 수 두기 ---
         win, illegal = self.gomoku.step(action=action, env_mask=env_mask)
 
-        # 현재 구현에서는 illegal move가 나오지 않도록 설계
+        # action_mask를 잘 따르면 illegal은 발생하지 않는 게 정상
         assert not illegal.any()
 
         done = win
         black_win = win & (episode_len % 2 == 1)
         white_win = win & (episode_len % 2 == 0)
 
-        # ========= 보상 쉐이핑 =========
-        # 현재 수를 둔 플레이어의 stone 값 (1: black, -1: white)
-        piece = torch.where(
-            turn_before == 0,
-            torch.ones_like(turn_before, dtype=torch.long),
-            -torch.ones_like(turn_before, dtype=torch.long),
-        )  # (E,)
+        board_after = self.gomoku.board
 
-        piece_view = piece.view(-1, 1, 1)  # (E,1,1)
+        # 수 둔 후 상대 threat-3 / threat-4 개수
+        opp_threat3_after, opp_threat4_after = self._count_threats(
+            board_after, opp_piece
+        )
 
-        board_after = self.gomoku.board  # step 이후 보드 (E,B,B)
+        # 이번 수로 차단한 threat 개수
+        delta_block3 = (opp_threat3_before - opp_threat3_after).clamp(min=0.0)
+        delta_block4 = (opp_threat4_before - opp_threat4_after).clamp(min=0.0)
 
-        # 자기 / 상대 돌 마스크 (step 전/후)
+        # --- 자기/상대 줄 길이 기반 쉐이핑 ---
+        piece_view = piece.view(-1, 1, 1)
         own_before = board_before == piece_view
-        opp_before = board_before == -piece_view
         own_after = board_after == piece_view
-        opp_after = board_after == -piece_view
+        opp_before = board_before == (-piece_view)
+        opp_after = board_after == (-piece_view)
 
-        # 최장 연속 줄 길이 (최대 5)
-        own_max_before = self._max_line_in_five(own_before)  # (E,)
-        own_max_after = self._max_line_in_five(own_after)    # (E,)
-        opp_max_before = self._max_line_in_five(opp_before)  # (E,)
-        opp_max_after = self._max_line_in_five(opp_after)    # (E,)
+        own_max_before = self._max_line_in_five(own_before)
+        own_max_after = self._max_line_in_five(own_after)
+        opp_max_before = self._max_line_in_five(opp_before)
+        opp_max_after = self._max_line_in_five(opp_after)
 
-        # 자기 줄 증가 / 상대 줄 차단 정도
-        delta_self = (own_max_after - own_max_before).clamp(min=0.0)
-        delta_block = (opp_max_before - opp_max_after).clamp(min=0.0)
+        delta_self_len = (own_max_after - own_max_before).clamp(min=0.0)
+        delta_block_len = (opp_max_before - opp_max_after).clamp(min=0.0)
 
-        # 중앙에 둘수록 작은 보너스 (L1 거리 기준 정규화)
+        # --- 중앙 선호(작은 보너스) ---
         board_size = self.board_size
         x = action // board_size
         y = action % board_size
         center = (board_size - 1) / 2.0
         dist_center = (x.float() - center).abs() + (y.float() - center).abs()
         max_dist = 2.0 * (board_size - 1)
-        center_reward = -0.03 * (dist_center / max_dist)  # 중앙에 가까울수록 0에 가깝고, 바깥으로 갈수록 -0.03에 근접
+        center_reward = -0.03 * (dist_center / max_dist)
 
-        # 실제로 수를 둔 env에만 보상 반영
-        valid_mask = env_mask & (~illegal)
+        # --- 타임 패널티(매 수당 작은 페널티) ---
+        step_penalty = -0.002
 
-        # 하이퍼파라미터 (필요하면 튜닝)
-        w_len_self = 0.04   # 자기 줄 길이 증가 보상 가중치
-        w_len_block = 0.06  # 상대 줄 차단 보상 가중치
-        step_penalty = -0.002  # 매 수마다 작은 페널티
+        # 실제로 수를 둔 env만 보상 반영
+        if env_mask is None:
+            valid_mask = torch.ones(self.num_envs, dtype=torch.bool, device=self.device)
+        else:
+            valid_mask = env_mask & (~illegal)
+
+        # 쉐이핑 가중치
+        w_len_self = 0.04   # 자기 줄 늘리기
+        w_len_block = 0.06  # 상대 줄 차단
+        w_block3 = 0.08     # threat-3 차단 보상
+        w_block4 = 0.20     # threat-4(오목 직전) 차단 보상
 
         shaping = (
-            w_len_self * delta_self
-            + w_len_block * delta_block
+            w_len_self * delta_self_len
+            + w_len_block * delta_block_len
+            + w_block3 * delta_block3
+            + w_block4 * delta_block4
             + center_reward
             + step_penalty
         )
 
         shaping = shaping * valid_mask.float()
 
-        # 승리 시 +1 추가 보상 (현재 수를 둔 플레이어가 5목을 완성한 경우)
+        # 승리 보상 (+1), 패배는 여기서 0, 패널티/형태 보상은 shaping에 포함
         win_reward = win.float()
 
         reward = (win_reward + shaping).unsqueeze(-1)  # (E,1)
-        # ===============================
 
         tensordict = TensorDict({}, self.batch_size, device=self.device)
         tensordict.update(
@@ -220,13 +329,10 @@ class GomokuEnv:
                     "episode_len": episode_len,
                     "black_win": black_win,
                     "white_win": white_win,
-                    # 디버그/로그용 추가 통계
-                    "own_max_before": own_max_before,
-                    "own_max_after": own_max_after,
-                    "opp_max_before": opp_max_before,
-                    "opp_max_after": opp_max_after,
-                    "delta_self": delta_self,
-                    "delta_block": delta_block,
+                    "delta_self_len": delta_self_len,
+                    "delta_block_len": delta_block_len,
+                    "delta_block3": delta_block3,
+                    "delta_block4": delta_block4,
                 },
             }
         )
