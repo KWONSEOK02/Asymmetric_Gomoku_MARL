@@ -1,11 +1,11 @@
 name: ppo
 
 # ppo
-ppo_epochs: 2
-clip_param: 0.2 # 0.2
-entropy_coef: 0.01 # 0.01
+ppo_epochs: 4          # 2 -> 4 (데이터를 더 많이 reuse)
+clip_param: 0.2
+entropy_coef: 0.02     # 0.01 -> 0.02 (탐색 조금 더)
 gae_lambda: 0.95
-gamma: 0.99 # 0.99
+gamma: 0.99
 max_grad_norm: 0.5
 batch_size: 8192
 
@@ -17,7 +17,7 @@ share_network: true
 optimizer:
   name: adam
   kwargs:
-    lr: 1e-4
+    lr: 3e-4  
 
 
 num_channels: 64
