@@ -1,17 +1,14 @@
 name: ppo
 
 # ppo
-ppo_epochs: 4          # 2 -> 4 (데이터를 더 많이 reuse)
+ppo_epochs: 4         
 clip_param: 0.2
-entropy_coef: 0.02     # 0.01 -> 0.02 (탐색 조금 더)
+entropy_coef: 0.02     
 gae_lambda: 0.95
 gamma: 0.99
 max_grad_norm: 0.5
 batch_size: 8192
-
-normalize_advantage: true
 average_gae: False
-
 share_network: true
 
 optimizer:
