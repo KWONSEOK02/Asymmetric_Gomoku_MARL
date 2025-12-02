@@ -5,12 +5,10 @@ device: cuda
 out_device: cpu
 run_dir:
 
-augment: false
-
 epochs: 1000
-steps: 128
+steps: 256
 save_interval: 300
-survival_reward: 0.001
+survival_reward: 0.000
 
 collector_type: "BlackPlay"
 
