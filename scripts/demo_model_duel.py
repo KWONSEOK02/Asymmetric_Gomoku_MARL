@@ -3,6 +3,7 @@ from omegaconf import DictConfig, OmegaConf
 import sys
 import torch
 import time
+import random
 from PyQt5.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -181,9 +182,11 @@ def main(cfg: DictConfig):
         """
         AI-vs-AI의 한 스텝을 진행합니다.
         """
-        # --- 5-1. 게임 종료 확인 ---
+        # 1. 현재 보드가 비어있는지(첫 수인지) 확인
+        is_first_move = (board.latest_move is None)
+
+        # 2. 게임 종료 체크
         if board.done:
-            # 턴은 승리 직후 바뀌므로, 현재 턴의 반대편이 승자
             if board.current_player == Piece.BLACK:
                 winner = "WHITE"
             else:
@@ -192,9 +195,29 @@ def main(cfg: DictConfig):
             label.setText(f"Game Over! Winner: {winner}")
             status_bar.showMessage(f"Game Over! Winner: {winner}", 5000)
             return
+        current_player_piece = board.current_player
+        # 3. 랜덤 오프닝 로직 적용
+        if is_first_move:
+            label.setText(f"Random Opening (5x5 Center)")
+            QApplication.processEvents()
+            # 중앙 좌표 및 범위 설정 (5x5)
+            center = board.board_size // 2
+            margin = 2 # center-2 ~ center+2 (총 5칸)
+            # 유효한 수(이미 돌이 없는 곳)를 찾을 때까지 반복 (첫 수라 사실 항상 비어있음)
+            while True:
+                x = random.randint(center - margin, center + margin)
+                y = random.randint(center - margin, center + margin)
+                if board._is_action_valid(x * board.board_size + y):
+                    break
+
+            logging.info(f"Random Start | {current_player_piece.name} -> ({x}, {y})")
+            board.step([x, y])
+
+            # 다음 턴 예약
+            QTimer.singleShot(int(cfg.sleep_per_move * 1000), game_step)
+            return
 
         # --- 5-2. 현재 턴의 AI 정책 선택 ---
-        current_player_piece = board.current_player
         policy = policies[current_player_piece]
         label.setText(f"Thinking: {current_player_piece.name}")
         QApplication.processEvents() # 라벨 업데이트

@@ -2,17 +2,17 @@
 defaults:
   - _self_
   - algo_black: ppo 
-  - algo_white: a2c 
+  - algo_white: ppo 
 
 # --- 보드 및 환경 설정 ---
 board_size: 15
 num_envs: 1        # GUI 데모는 1개의 환경만 필요
 device: cpu        # GUI 데모는 CPU를 기본값으로
 
-black_checkpoint: "results/models/BlackPlay_agent_PPO.pt"
-white_checkpoint: "results/models/WhitePlay_agent_A2C.pt"
+black_checkpoint: "results/evaluation/baselines/0.pt"
+white_checkpoint: "results/evaluation/baselines/1.pt"
 
 # --- GUI 관전 설정 ---
 grid_size: 28
 piece_radius: 12
-sleep_per_move: 0.5  # 모델이 한 수 둘 때마다 0.5초 대기
+sleep_per_move: 0.8  # 모델이 한 수 둘 때마다 0.5초 대기

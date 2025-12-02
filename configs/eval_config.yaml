@@ -1,7 +1,7 @@
 defaults:
   - _self_
   - algo_black: ppo   # configs/algo_black/ppo.yaml 을 기본으로 사용
-  - algo_white: a2c   # configs/algo_white/a2c.yaml 을 기본으로 사용
+  - algo_white: ppo   # configs/algo_white/ppo.yaml 을 기본으로 사용
 
 # --- 평가 환경 설정 ---
 board_size: 15
@@ -9,5 +9,5 @@ num_eval_envs: 100  # 100판 동시 진행
 device: cuda        # 평가는 속도를 위해 CUDA 권장 (로컬 테스트 시엔 CLI에서 cpu로 덮어쓰기)
 
 # --- 모델 경로 (기본값) ---
-black_checkpoint: "results/models/BlackPlay_agent_PPO.pt"
-white_checkpoint: "results/models/WhitePlay_agent_A2C.pt"
+black_checkpoint: "results/evaluation/baselines/0.pt"
+white_checkpoint: "results/evaluation/baselines/1.pt"

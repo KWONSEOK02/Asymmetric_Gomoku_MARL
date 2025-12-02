@@ -92,15 +92,14 @@ def evaluate_win_rate(
     draws = num_envs - black_wins - white_wins
 
     # 흑 기준: 이기면 +1점
-    cumulative_reward_black = float(black_wins)
-    average_reward_black = cumulative_reward_black / float(num_envs)
+    total_wins_black = float(black_wins) 
+    average_reward_black = total_wins_black / float(num_envs)
 
     return {
-        "cumulative_reward": cumulative_reward_black,      # 예: 85.0
-        "average_reward": average_reward_black,            # 예: 0.85
-        "win_rate": f"{average_reward_black * 100:.1f}%",  # 예: "85.0%"
+        "total_wins": total_wins_black,  
+        "average_reward": average_reward_black,
+        "win_rate": f"{average_reward_black * 100:.1f}%",
         "black_wins": int(black_wins),
         "white_wins": int(white_wins),
         "draws": int(draws),
     }
-
