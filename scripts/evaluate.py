@@ -147,15 +147,15 @@ def main(cfg: DictConfig):
     action_spec, observation_spec = _build_specs(cfg)
 
     # 2. 정책 로드
-    logger.info(f"Loading Black Policy: {cfg.algo_black.name}")
+    logger.info(f"Loading Black Policy: {cfg.algo.name}")
     black_policy = _load_policy(
-        cfg.black_checkpoint, cfg.algo_black,
+        cfg.black_checkpoint, cfg.algo,
         action_spec, observation_spec, cfg.device
     )
 
-    logger.info(f"Loading White Policy: {cfg.algo_white.name}")
+    logger.info(f"Loading White Policy: {cfg.algo.name}")
     white_policy = _load_policy(
-        cfg.white_checkpoint, cfg.algo_white,
+        cfg.white_checkpoint, cfg.algo,
         action_spec, observation_spec, cfg.device
     )
 
