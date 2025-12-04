@@ -116,19 +116,19 @@ def main(cfg: DictConfig):
     action_spec, observation_spec = _build_specs(cfg)
 
     # 2. 흑/백 정책 로드 (PPO vs A2C 가능)
-    logging.info(f"Loading Black policy ({cfg.algo_black.name})...")
+    logging.info(f"Loading Black policy ({cfg.algo.name})...")
     black_policy = _load_policy(
         cfg.black_checkpoint,
-        cfg.algo_black,
+        cfg.algo,
         action_spec,
         observation_spec,
         cfg.device,
     )
 
-    logging.info(f"Loading White policy ({cfg.algo_white.name})...")
+    logging.info(f"Loading White policy ({cfg.algo.name})...")
     white_policy = _load_policy(
         cfg.white_checkpoint,
-        cfg.algo_white,
+        cfg.algo,
         action_spec,
         observation_spec,
         cfg.device,
@@ -149,7 +149,7 @@ def main(cfg: DictConfig):
     window = QMainWindow()
     window.setMinimumSize(board.sizeHint())
     window.setWindowTitle(
-        f"Gomoku AI Duel: {cfg.algo_black.name}(B) vs {cfg.algo_white.name}(W)"
+        f"Gomoku AI Duel: {cfg.algo.name}(B) vs {cfg.algo.name}(W)"
     )
 
     central_widget = QWidget()
