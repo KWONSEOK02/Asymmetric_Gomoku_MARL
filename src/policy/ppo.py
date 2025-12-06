@@ -8,10 +8,8 @@ import logging
 from torchrl.objectives import ClipPPOLoss
 from torchrl.objectives.value.functional import vec_generalized_advantage_estimate
 
-# --- 경로 수정 ---
-# (같은 src/policy/ 폴더에 있으므로 상대 경로 '.' 사용)
-from .base import Policy  
-from .common import (     
+from .base import Policy
+from .common import (
     make_dataset_naive,
     make_ppo_ac,
     get_optimizer,
@@ -78,9 +76,6 @@ class PPO(Policy):
             # 원래 모드로 복원 (기존 학습 로직에 영향 X)
             self.actor.train(actor_was_training)
             self.critic.train(critic_was_training)
-        # print(f"actor params:{count_parameters(self.actor)}")
-        # print(f"critic params:{count_parameters(self.critic)}")
-
         self.loss_module = ClipPPOLoss(
             actor=self.actor,
             critic=self.critic,
@@ -109,7 +104,6 @@ class PPO(Policy):
         return tensordict
 
     def learn(self, data: TensorDict):
-        # to do: compute the gae for each batch
         value = data["state_value"].to(self.device)
         next_value = data["next", "state_value"].to(self.device)
         done = data["next", "done"].unsqueeze(-1).to(self.device)

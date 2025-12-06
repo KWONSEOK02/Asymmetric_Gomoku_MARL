@@ -25,7 +25,7 @@ from torchrl.data.tensor_specs import (
 )
 
 # --- 기존 demo.py에서 GomokuBoard 클래스를 임포트합니다 ---
-# (demo.py가 scripts/demo.py에 있다고 가정)
+
 try:
     from scripts.demo import GomokuBoard, Piece
 except ImportError:
@@ -165,8 +165,6 @@ def main(cfg: DictConfig):
 
     menu = window.menuBar().addMenu("&Menu")
     status_bar = window.statusBar()
-    
-    # (참고: Open 메뉴는 이 스크립트에선 큰 의미 없음)
     open_action = QAction("&Open (Not Recommended)")
     menu.addAction(open_action)
 

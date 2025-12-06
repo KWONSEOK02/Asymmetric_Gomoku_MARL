@@ -1,6 +1,6 @@
 from .base import Policy
 from .ppo import PPO
-from .a2c import A2C  # (안건 2순위: 추후 A2C 구현 시 이 주석 해제)
+from .a2c import A2C
 
 from torchrl.data.tensor_specs import DiscreteTensorSpec, TensorSpec
 from omegaconf import DictConfig
@@ -37,7 +37,7 @@ def get_policy(
             observation_spec=observation_spec,
             device=device,
         )
-    elif name.lower() == "a2c":  # (추후 A2C 구현 시 이 주석 해제)
+    elif name.lower() == "a2c":
         cls = Policy.REGISTRY[name.lower()]
         return cls(
             cfg=cfg,

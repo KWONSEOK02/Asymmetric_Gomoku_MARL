@@ -14,7 +14,6 @@ from torchrl.data.tensor_specs import (
     BinaryDiscreteTensorSpec,
 )
 
-# 만든 모듈들 임포트
 from src.policy import get_policy
 
 # --- model_duel.py와 동일한 헬퍼 함수 ---

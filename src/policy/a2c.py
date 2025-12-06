@@ -18,7 +18,7 @@ from .common import (
     make_ppo_actor,
 )
 
-from src.utils.module import count_parameters  # optional, 안 쓰면 삭제해도 됨
+from src.utils.module import count_parameters
 
 
 class A2C(Policy):
