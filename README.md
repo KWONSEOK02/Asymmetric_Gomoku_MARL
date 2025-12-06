@@ -2,7 +2,7 @@
 
 ## 1. 📝 프로젝트 개요 (Project Overview)
 
-본 프로젝트는 비대칭적 특성을 가진 오목(Gomoku) 환경에서 **멀티에이전트 강화학습(MARL)**을 적용하고 그 성능을 분석하는 것을 목표로 합니다.
+본 프로젝트는 비대칭적 특성을 가진 오목(Gomoku) 환경에서 멀티에이전트 강화학습(MARL)을 적용하고 그 성능을 분석하는 것을 목표로 합니다.
 
 오목은 구조적으로 흑(선공)이 유리한 게임이기 때문에, 두 에이전트가 동일한 조건에서 안정적으로 학습하기 어렵다는 근본적인 문제가 존재합니다.
 
@@ -203,11 +203,11 @@ Asymmetric_Gomoku_MARL/
 │   └── train_logs/               # 학습 과정 로그
 │
 ├── scripts/                      # 실행 가능한 스크립트 파일
-│   ├── **demo_model_duel.py**    # 두 모델 간의 대결 GUI 데모
-│   ├── **demo.py**               # 사람 대 AI 대결 GUI 데모
-│   ├── **evaluate.py**           # 모델 평가 스크립트
-│   ├── **plot_log.py**           # 학습 로그 시각화 스크립트
-│   └── **train.py**              # 메인 학습 스크립트
+│   ├── demo_model_duel.py        # 두 모델 간의 대결 GUI 데모
+│   ├── demo.py                   # 사람 대 AI 대결 GUI 데모
+│   ├── evaluate.py               # 모델 평가 스크립트
+│   ├── plot_log.py               # 학습 로그 시각화 스크립트
+│   └── train.py                  # 메인 학습 스크립트
 ├── src/
 │   ├── __init__.py
 │   ├── collectors/
