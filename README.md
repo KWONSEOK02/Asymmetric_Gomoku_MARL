@@ -2,17 +2,21 @@
 
 ## 1. 📝 프로젝트 개요 (Project Overview)
 
-본 프로젝트는 오목(Gomoku) 환경에서 멀티에이전트 강화학습(MARL)을 적용하는 것을 목표로 합니다. 오목은 흑(선공)이 압도적으로 유리한 비대칭 게임입니다.
+본 프로젝트는 비대칭적 특성을 가진 오목(Gomoku) 환경에서 **멀티에이전트 강화학습(MARL)**을 적용하고 그 성능을 분석하는 것을 목표로 합니다.
 
-본 프로젝트는 `hesic73/gomoku_rl`을 기반으로, **흑(공격자) 에이전트**와 **백(방어자) 에이전트**를 독립적으로 학습시켜 , **PPO와 A2C 알고리즘의 학습 효율성과 전략적 차이를 비교 분석**합니다.
+오목은 구조적으로 흑(선공)이 유리한 게임이기 때문에, 두 에이전트가 동일한 조건에서 안정적으로 학습하기 어렵다는 근본적인 문제가 존재합니다.
+
+본 연구에서는 `hesic73/gomoku_rl` 환경을 기반으로
+흑(공격자) 에이전트와 백(방어자) 에이전트를 독립적으로 학습시키며,
+두 역할에서 **PPO와 A2C 알고리즘의 학습 안정성, 전략적 성향, 그리고 성능 차이를 비교 분석**하는 것을 주요 목표로 합니다.
 
 ---
 
 ## 2. 🛠️ Tech Stack
 
 * **Environment:** Conda (로컬 가상 환경), Google Colab (GPU 학습)
-* **Local (Conda):** Python 3.11.5, PyTorch 2.1.0, TorchRL 0.2.1
-* **Colab (GPU):** Python 3.12, PyTorch 2.2.2+cu118, TorchRL 0.5.0
+* **Local (Conda):** Python 3.12, PyTorch 2.2.2 +cu118, TorchRL 0.5.0,TensorDict 0.5.0 
+* **Colab (GPU):** Python 3.12, PyTorch 2.2.2 +cu118, TorchRL 0.5.0,TensorDict 0.5.0 
 * **Config & Demo:** Hydra-core, OmegaConf, PyQt5
 * **Utilities:** NumPy (<2.0), WandB, Matplotlib
 
@@ -32,10 +36,10 @@ cd Asymmetric_Gomoku_MARL
 
 ### 2. 로컬 가상 환경 설정 (Conda)
 
-#### Python 3.11.5로 'gomoku_marl_env' 환경 생성
+#### Python 3.11.5로 'gomoku_py312' 환경 생성
 ```bash
-conda create -n gomoku_marl_env python=3.11.5
-conda activate gomoku_marl_env
+conda create -n gomoku_py312 python=3.12
+conda activate gomoku_py312
 ```
 
 #### requirements.txt로 모든 라이브러리 설치
@@ -172,54 +176,70 @@ python scripts/demo.py device=cpu checkpoint=results/models/black_final.pt
 * **실전 안정화:** Gradient Clipping, `smooth_l1_loss`, Advantage 정규화 등 `ppo.py`와 유사한 실전 안정화 기법이 포함되어 있습니다.
 * **메모리 최적화 (그래디언트 누적):** Colab GPU 환경의 메모리 한계(OOM) 내에서 대용량 배치를 학습하기 위해 **그래디언트 누적(Gradient Accumulation)**이 구현되었습니다.
 
-📄 [A2C 상세 구현 및 실험 문서 (Notion) 작성자 : cxado-6919 ](https://www.notion.so/a2c-py-2aa67d3af68780a6a26cea9213549602?source=copy_link)
+📄 [A2C 상세 구현 및 실험 문서 (Notion) 작성자 : Jeahyun Park ](https://www.notion.so/a2c-py-2aa67d3af68780a6a26cea9213549602?source=copy_link)
 
 ## 5. 📁 프로젝트 구조
 ```
 Asymmetric_Gomoku_MARL/
-├── configs/
+├── configs/                      # Hydra 설정을 위한 YAML 파일
 │   ├── algo/
-│   │   ├── ppo.yaml         # (가져옴) PPO 알고리즘 설정
-│   │   └── a2c.yaml         # (신규) A2C 알고리즘 설정
+│   │   ├── ppo.yaml              # PPO 알고리즘 하이퍼파라미터
+│   │   └── a2c.yaml              # A2C 알고리즘 하이퍼파라미터
 │   ├── baseline/
-│   │   ├── ppo.yaml         # (가져옴) Baseline PPO 설정
-│   │   └── a2c.yaml         # (신규) Baseline A2C 설정
-│   └── train_config.yaml  # (가져옴) 메인 학습 설정
-├── notebooks/
-├── results/
-│   ├── models/
-│   └── plots/
-├── scripts/
-│   ├── train.py
-│   ├── evaluate.py
-│   └── demo.py
+│   │   ├── ppo.yaml              # Baseline PPO 학습 설정
+│   │   └── a2c.yaml              # Baseline A2C 학습 설정
+│   ├── demo_config.yaml          # 데모 실행 설정
+│   ├── eval_config.yaml          # 평가 실행 설정
+│   ├── gui_duel_config.yaml      # GUI 듀얼 모드 설정
+│   └── train_config.yaml         # 메인 학습 설정
+│
+├── notebooks/                    # 결과 분석 및 시각화용 Jupyter Notebook
+├── results/                      # 학습 및 평가 결과 저장소
+│   ├── evaluation/               # 최종 평가 결과 (승률, Elo 등)
+│   │   ├── baselines/            # 베이스라인 모델 가중치 저장
+│   │   └── logs/                 # 평가 스크립트 실행 로그
+│   ├── models/                   # 학습된 에이전트 모델 가중치 (.pt)
+│   ├── plots/                    # 생성된 그래프 및 시각화 자료
+│   └── train_logs/               # 학습 과정 로그
+│
+├── scripts/                      # 실행 가능한 스크립트 파일
+│   ├── **demo_model_duel.py**    # 두 모델 간의 대결 GUI 데모
+│   ├── **demo.py**               # 사람 대 AI 대결 GUI 데모
+│   ├── **evaluate.py**           # 모델 평가 스크립트
+│   ├── **plot_log.py**           # 학습 로그 시각화 스크립트
+│   └── **train.py**              # 메인 학습 스크립트
 ├── src/
 │   ├── __init__.py
 │   ├── collectors/
 │   │   ├── __init__.py
-│   │   └── collectors.py    # (가져옴) BlackPlayCollector 등
+│   │   └── collectors.py        # 데이터 수집기 로직
+│   │
 │   ├── envs/
 │   │   ├── __init__.py
-│   │   ├── gomoku_env.py    # (가져옴) GomokuEnv 클래스
-│   │   └── core.py          # (가져옴) Gomoku 핵심 로직
+│   │   ├── gomoku_env.py        # 오목 환경
+│   │   └── core.py              # 심판 로직
+│   │
 │   ├── evaluation/
 │   │   ├── __init__.py
-│   │   └── evaluator.py
-│   ├── models/            # (신규) 신경망 "설계도" (.py)
+│   │   └── evaluator.py         # 평가 로직
+│   │
+│   ├── models/                  # 신경망 모델 아키텍처 정의
 │   │   ├── __init__.py
-│   │   └── base_model.py     # (신규) PPO/A2C 공용 베이스 모델
-│   ├── policy/            # (신규) "알고리즘" 자체
+│   │   └── base_model.py        # PPO/A2C 공용 베이스 모델
+│   │
+│   ├── policy/                  # 강화학습 알고리즘 구현
 │   │   ├── __init__.py
-│   │   ├── base.py          # (가져옴) Policy 추상 클래스
-│   │   ├── common.py        # (가져옴) PPO/A2C 공통 헬퍼
-│   │   ├── ppo.py           # (가져옴) PPO 알고리즘 클래스
-│   │   └── a2c.py           # (신규 구현) A2C 알고리즘 클래스
-│   └── utils/             # (공통 유틸리티)
+│   │   ├── base.py              # Policy 추상 클래스
+│   │   ├── common.py            # PPO/A2C 공통 헬퍼
+│   │   ├── ppo.py               # PPO 알고리즘 클래스
+│   │   └── a2c.py               # A2C 알고리즘 클래스
+│   │
+│   └── utils/                   # 공통 유틸리티 함수
 │       ├── __init__.py
-│       ├── augment.py
-│       ├── log.py
-│       ├── misc.py
-│       └── policy.py
+│       ├── log.py               # 학습 통계 로그 처리 및 `Mean` 클래스 정의
+│       ├── misc.py              # 전역 환경 설정 (Seed 설정, Config 처리 등)
+│       ├── module.py            # PyTorch 모델 유틸리티 (매개변수 초기화,개수 계산)
+│       └── policy.py            # 에이전트 정책 관련 함수 (균일 랜덤 정책, 마스크 처리)
 ├── .gitignore
 ├── requirements.txt
 └── README.md
