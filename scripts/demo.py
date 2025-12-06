@@ -1,6 +1,5 @@
 import hydra
 from omegaconf import DictConfig, OmegaConf
-# from gomoku_rl import CONFIG_PATH  <- 삭제 (Hydra가 config_path를 관리)
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow
 import logging
@@ -83,7 +82,7 @@ def make_model(cfg: DictConfig):
         ],
         device=device,
     )
-    model = get_policy( # src.agents에서 가져온 함수 (직접 구현 필요)
+    model = get_policy(
         name=cfg.algo.name,
         cfg=cfg.algo,
         action_spec=action_spec,
@@ -325,7 +324,6 @@ def main(cfg: DictConfig):
     OmegaConf.register_new_resolver("eval", eval)
     OmegaConf.resolve(cfg)
 
-    # (이하 원본과 동일)
 
     if cfg.get("human_black", True):
         human_color = Piece.BLACK
@@ -357,7 +355,6 @@ def main(cfg: DictConfig):
     label = QLabel()
     label.setAlignment(Qt.AlignmentFlag.AlignCenter)
     label.setFont(QFont("Arial", 24))
-    # TO DO
     label.setText("")
     label.setMinimumHeight(32)
     layout = QVBoxLayout(central_widget)

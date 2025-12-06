@@ -225,8 +225,6 @@ class Gomoku:
         last_x = self.last_move // self.board_size  # (E,)
         last_y = self.last_move % self.board_size  # (E,)
 
-        # (1,B)==(E,1)-> (E,B)-> (E,B,1)
-        # (1,B)==(E,1)-> (E,B)-> (E,1,B)
         layer3 = (
             (
                 torch.arange(self.board_size, device=self.device).unsqueeze(0)
@@ -240,15 +238,12 @@ class Gomoku:
         )  # (E,B,B)
         layer3 = layer3.float()
 
-        # layer4 = (self.turn == 0).float().unsqueeze(-1).unsqueeze(-1)  # (E,1,1)
-        # layer4 = layer4.expand(-1, self.board_size, self.board_size)
 
         output = torch.stack(
             [
                 layer1,
                 layer2,
                 layer3,
-                # layer4,
             ],
             dim=1,
         )  # (E,*,B,B)

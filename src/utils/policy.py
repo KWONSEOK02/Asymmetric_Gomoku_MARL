@@ -23,7 +23,6 @@ def _uniform_policy_with_mask(action_mask: torch.Tensor):
 def uniform_policy(tensordict: TensorDict) -> TensorDict:
     action_mask = tensordict.get("action_mask", None)
     if action_mask is None:
-        # not tested
         obs: torch.Tensor = tensordict.get("observation")
         assert len(obs.shape) == 4 and obs.shape[-2] == obs.shape[-1]
         num_envs = obs.shape[0]
